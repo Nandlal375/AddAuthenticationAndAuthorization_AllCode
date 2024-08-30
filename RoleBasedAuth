@@ -1,0 +1,66 @@
+Role Add code in programme.cs file
+
+builder.Services.AddDefaultIdentity<ApplicationUser>().AddRoles<IdentityRole>()
+    .AddEntityFrameworkStores<ApplicationDbContext>();
+
+
+var app = builder.Build();
+
+// Apply migrations and seed the database.
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+        // Assuming DbInitializer.InitializeAsync method exists to seed the database.
+        DbInitializer.InitializeAsync(context, services, userManager).Wait();
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
+    }
+}
+
+One class create like this 
+
+   public static class DbInitializer
+    {
+        public static async Task InitializeAsync(ApplicationDbContext context, IServiceProvider serviceProvider, UserManager<ApplicationUser> userManager)
+        {
+            var RoleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            string[] roleNames = { "Admin", "User" };
+            IdentityResult roleResult;
+            foreach (var RoleName in roleNames)
+            {
+                var roleExists = await RoleManager.RoleExistsAsync(RoleName);
+                if (!roleExists)
+                {
+                    roleResult = await RoleManager.CreateAsync(new IdentityRole(RoleName));
+                }
+
+            }
+            string Email = "admin@outlook.com";
+            string password = "Admin@12345";
+            if (userManager.FindByEmailAsync(Email).Result == null)
+            {
+                ApplicationUser user = new ApplicationUser();
+                user.UserName = Email;
+                user.Email = Email;
+
+                IdentityResult result = userManager.CreateAsync(user, password).Result;
+
+                if (result.Succeeded)
+                {
+                    userManager.AddToRoleAsync(user, "Admin").Wait();
+                }
+            }
+}
+}
+ 
+
+this code apply page load role create successfully.
+
+
